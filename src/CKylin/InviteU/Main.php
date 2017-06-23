@@ -13,12 +13,11 @@ use pocketmine\utils\Config;
 use pocketmine\Server;
 use pocketmine\Player;
 use pocketmine\command\CommandSender;
-
+//PointCard2
 use CsNle\PointCard\Main as PC;
 
 class Main extends PluginBase implements Listener
 {
-//On Enable + Config Create.
 
     public function onEnable() {
 	    $this->getServer()->getPluginManager()->registerEvents($this, $this);
@@ -49,26 +48,6 @@ class Main extends PluginBase implements Listener
 			),
 		));
 		$this->PC = PC::$PC;
-		// $this->pcs = new Config($this->path."cards.yml", Config::YAML,array(
-		// 	'inviter'=>array(),
-		// 	'invitees'=>array(),
-		// ));
-		// $this->pcsex = new Config($this->path."cards_example.yml", Config::YAML,array(
-		// 	'inviter'=>array(
-		// 		'pointcardscodehere0'=>false,
-		// 		'pointcardscodehere1'=>false,
-		// 		'pointcardscodehere2'=>false,
-		// 		'pointcardscodehere3'=>false,
-		// 		'pointcardscodehere4'=>false,
-		// 	),
-		// 	'invitees'=>array(
-		// 		'pointcardscodehere5'=>false,
-		// 		'pointcardscodehere6'=>false,
-		// 		'pointcardscodehere7'=>false,
-		// 		'pointcardscodehere8'=>false,
-		// 		'pointcardscodehere9'=>false,
-		// 	),
-		// ));
 		$this->invite = new Config($this->path."invites.yml", Config::YAML,array());
 		$this->invited = new Config($this->path."inviteds.yml", Config::YAML,array());
 		$this->saveall();
@@ -122,7 +101,6 @@ class Main extends PluginBase implements Listener
 		}
 		
 	}
-	//API
 
 	public function getInvited($p){
 		if(!$this->invite->exists($p)) return '';
@@ -176,7 +154,6 @@ class Main extends PluginBase implements Listener
 		$all = $this->invite->getALL();
 		$found = false;
 		foreach($all as $pi => $info){
-			//$pe->sendMessage($info['code'].'=='.strtoupper($code));
 			if($info['code']==strtoupper($code)){
 				if(in_array($p,$info['invited'])){
 					return 1;
@@ -218,36 +195,11 @@ class Main extends PluginBase implements Listener
 		}
 		
 	}
-
-	public function msg($msg,$ps){
-		// if(!is_array($ps)){
-		// 	$ps = [$ps];
-		// }
-		// foreach($ps as $p){
-		// 	$p->sendMessage($msg);
-		// }
-		return $ps->sendMessage($msg);
-	}
-
-	public function msgALL($msg,$console = true) {//broadcast
-	if(!isset($msg)) { return false; }
-	$allp = $this->getServer()->getOnlinePlayers();
-	foreach($allp as $p){
-			$p->sendMessage($msg);
-		}
 	
-	if($console){
-		$this->getLogger()->info($msg);
-	}
-}
-//I use new function instead of follows function to print cdk info.
 	public function generator($prefix = "") {
 		$lib = array("0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z");
-			//$this->getLogger()->info(TextFormat::RED . '1');
 		shuffle($lib);
-			//$this->getLogger()->info(TextFormat::RED . '2');
 		$return = $prefix.$lib[0].$lib[1].$lib[2].$lib[3].$lib[4].$lib[5];
-			//$this->getLogger()->info(TextFormat::RED . '3');
 		return $return;
 	}
 	

@@ -1,0 +1,16 @@
+name: InviteU
+main: CKylin\InviteU\Main
+version: 1.0.0
+api: [1.0.0]
+load: POSTWORLD
+author: CKylinMC
+commands:
+ i:
+  description: "邀请码"
+  usage: "/i <invite code>"
+  permission: i.cmd.i
+permissions:
+ i.cmd.i:
+  description: "玩家兑换权限"
+  default: true
+  

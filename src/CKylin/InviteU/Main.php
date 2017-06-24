@@ -20,11 +20,13 @@ class Main extends PluginBase implements Listener
 {
 
     public function onEnable() {
-	    $this->getServer()->getPluginManager()->registerEvents($this, $this);
-            $this->path = $this->getDataFolder();
+		$this->Version = 'v1.0.1';
+		$this->getServer()->getPluginManager()->registerEvents($this, $this);
+		$this->path = $this->getDataFolder();
 		@mkdir($this->path);@mkdir($this->path);
 		$this->cfg = new Config($this->path."options.yml", Config::YAML,array(
 			'enable'=>true,
+			'msg'=>'感谢您加入本服务器！',
 			'MaxInvited'=>10,
 			'Inviter_giftcard'=>array(
 				'remain'=>false,
@@ -50,8 +52,13 @@ class Main extends PluginBase implements Listener
 		$this->PC = PC::$PC;
 		$this->invite = new Config($this->path."invites.yml", Config::YAML,array());
 		$this->invited = new Config($this->path."inviteds.yml", Config::YAML,array());
+        if (!$this->getServer()->getPluginManager()->getPlugin('PointCard')) {
+			$this->setcfg('enable',false);
+			$this->getLogger()->info(TextFormat::RED . '未找到PointCard插件，本插件无法运行！');
+		}else{
+			$this->getLogger()->info(TextFormat::GREEN . 'InviteU 成功启动！');
+		}
 		$this->saveall();
-		$this->getLogger()->info(TextFormat::GREEN . 'InviteU is now working.');
 	}
 	
 	public function onDisable() {
@@ -61,6 +68,9 @@ class Main extends PluginBase implements Listener
 	
 	public function onCommand(CommandSender $s, Command $cmd, $label, array $args) {
 		if($cmd=='i'){
+			if(!$this->getcfg('enable')){
+				$s->sendMessage('未开启邀请功能。');
+			}
 			$s->sendMessage('======[Invite]======');
 			if(empty($args[0])){
 				$s->sendMessage('你的邀请码是：'.$this->getInviteCode($s->getName()));
@@ -91,12 +101,58 @@ class Main extends PluginBase implements Listener
 						}else{
 							$s->sendMessage('您已成功被邀请！');
 							$s->sendMessage('邀请人：'.$result);
+							$s->sendMessage($this->getcfg('msg'));
 							$this->beInvited($s->getName());
 						}
 					}
 				}
 			}
 			$s->sendMessage('======[Invite]======');
+			return true;
+		}
+		if($cmd=='iu'&&$s->isOp()){
+			$s->sendMessage('=[InviteU 管理]===========');
+			$p1 = $args[0];
+			$p2 = $args[1];
+			if(!empty($p1)){
+				if($p1=='enable'){
+					$this->setcfg('enable',true);
+					$s->sendMessage('插件已启用');
+				}elseif($p1=='disable'){
+					$this->setcfg('enable',false);
+					$s->sendMessage('插件已禁用');
+				}elseif($p1=='msg'){
+					if(empty($p2)){
+						$s->sendMessage('当前邀请附加消息为：'.$this->getcfg('msg'));
+					}else{
+						$this->setcfg('msg',$p2);
+						$s->sendMessage('成功设置邀请附加消息为：'.$this->getcfg('msg'));
+					}
+				}elseif($p1=='see'){
+					if(empty($p2)){
+						$s->sendMessage('用法：/iu see <PlayerName>');
+					}else{
+						$s->sendMessage('查询 - ' . $p2);
+						$s->sendMessage('ta的邀请码是：'.$this->getInviteCode($p2));
+						$s->sendMessage('ta已邀请 ['.$this->getInvitedCount($p2).'/'.$this->getcfg('MaxInvited').'] 个玩家！');
+						$s->sendMessage('ta的可提取卡密数量是：'.$this->getCardsCount($p2));
+						$s->sendMessage('ta的邀请列表：');
+						$s->sendMessage($this->getInvited($p2));
+					}
+				}elseif($p1=='info'){
+					$s->sendMessage('InviteU '.$this->Version.' by CKylin');
+					$s->sendMessage('Source code: https://github.com/Cansll/InviteU');
+					$s->sendMessage('邀请码奖励插件');
+				}else{
+					$s->sendMessage('支持的选项：enable / disable / msg / see / info');
+				}
+			}else{
+				$s->sendMessage('iu 命令是 InviteU 的管理员命令，用法是');
+				$s->sendMessage('/iu <options> <value>');
+				$s->sendMessage('支持的选项：enable / disable / msg / see / info');
+			}
+			$s->sendMessage('==========================');
+			$this->saveall();
 			return true;
 		}
 		

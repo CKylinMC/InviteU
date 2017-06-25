@@ -20,12 +20,13 @@ class Main extends PluginBase implements Listener
 {
 
     public function onEnable() {
-		$this->Version = 'v1.0.1';
+		$this->Version = 'v1.0.2';
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		$this->path = $this->getDataFolder();
 		@mkdir($this->path);@mkdir($this->path);
 		$this->cfg = new Config($this->path."options.yml", Config::YAML,array(
 			'enable'=>true,
+			'enableCidChecker'=>true,
 			'msg'=>'感谢您加入本服务器！',
 			'MaxInvited'=>10,
 			'Inviter_giftcard'=>array(
@@ -57,6 +58,7 @@ class Main extends PluginBase implements Listener
 			$this->getLogger()->info(TextFormat::RED . '未找到PointCard插件，本插件无法运行！');
 		}else{
 			$this->getLogger()->info(TextFormat::GREEN . 'InviteU 成功启动！');
+			$this->initCidChecker();
 		}
 		$this->saveall();
 	}
@@ -86,7 +88,7 @@ class Main extends PluginBase implements Listener
 				if($invited>=$max){
 					$s->sendMessage('你填写的邀请码已达到最大次数！');
 				}else{
-					if($this->is_beInvited($s->getName())){
+					if($this->is_beInvited($s)){
 						$s->sendMessage('你已经填写过邀请码了！');
 					}else{
 						$result = $this->InviteU($args[0],$s);
@@ -102,7 +104,8 @@ class Main extends PluginBase implements Listener
 							$s->sendMessage('您已成功被邀请！');
 							$s->sendMessage('邀请人：'.$result);
 							$s->sendMessage($this->getcfg('msg'));
-							$this->beInvited($s->getName());
+							$this->beInvited($s->getName(),$result);
+							if($this->cidstatus()) $this->logCid($s);
 						}
 					}
 				}
@@ -112,8 +115,8 @@ class Main extends PluginBase implements Listener
 		}
 		if($cmd=='iu'&&$s->isOp()){
 			$s->sendMessage('=[InviteU 管理]===========');
-			$p1 = $args[0];
-			$p2 = $args[1];
+			$p1 = !empty($args[0]) ? $args[0] : false;
+			$p2 = !empty($args[1]) ? $args[1] : false;
 			if(!empty($p1)){
 				if($p1=='enable'){
 					$this->setcfg('enable',true);
@@ -121,6 +124,14 @@ class Main extends PluginBase implements Listener
 				}elseif($p1=='disable'){
 					$this->setcfg('enable',false);
 					$s->sendMessage('插件已禁用');
+				}elseif($p1=='enablecid'){
+					$this->setcfg('enableCidChecker',true);
+					$s->sendMessage('正在启用Cid检查器');
+					$this->initCidChecker();
+				}elseif($p1=='disablecid'){
+					$this->setcfg('enableCidChecker',false);
+					$s->sendMessage('正在禁用Cid检查器');
+					$this->initCidChecker();
 				}elseif($p1=='msg'){
 					if(empty($p2)){
 						$s->sendMessage('当前邀请附加消息为：'.$this->getcfg('msg'));
@@ -144,12 +155,12 @@ class Main extends PluginBase implements Listener
 					$s->sendMessage('Source code: https://github.com/Cansll/InviteU');
 					$s->sendMessage('邀请码奖励插件');
 				}else{
-					$s->sendMessage('支持的选项：enable / disable / msg / see / info');
+					$s->sendMessage('支持的选项：enable / disable / enablecid / disablecid / msg / see / info');
 				}
 			}else{
 				$s->sendMessage('iu 命令是 InviteU 的管理员命令，用法是');
 				$s->sendMessage('/iu <options> <value>');
-				$s->sendMessage('支持的选项：enable / disable / msg / see / info');
+				$s->sendMessage('支持的选项：enable / disable / enablecid / disablecid / msg / see / info');
 			}
 			$s->sendMessage('==========================');
 			$this->saveall();
@@ -282,7 +293,13 @@ class Main extends PluginBase implements Listener
 		$this->saveall();
 	}
 
-	public function is_beInvited($p){
+	public function is_beInvited($pe){
+		$p = $pe->getName();
+		if($this->cidstatus()){
+			if($this->isInvitedByCid($pe)){
+				return true;
+			}
+		}
 		if($this->invited->exists($p)){
 			return true;
 		}
@@ -302,8 +319,79 @@ class Main extends PluginBase implements Listener
 
 	public function saveall(){
 		$this->cfg->save();
+		if($this->cidstatus()) $this->cid->save();
 		$this->invite->save();
 		$this->invited->save();
+	}
+
+	public function initCidChecker(){
+		$this->cid = new Config($this->path."cids.yml", Config::YAML,array());
+		if($this->cidstatus()){
+			$this->getLogger()->info(TextFormat::GREEN . '设备检查器已启用，已加载'.count($this->cid->getAll()).'条记录！');
+		}else{
+			$this->cid = '';
+		}
+	}
+
+	public function cidstatus(){
+		if(!$this->cfg->exists('enableCidChecker')){
+			// $this->getLogger()->info(TextFormat::GREEN . 'cid true');
+			$this->setcfg('enableCidChecker',true);
+			$this->saveall();
+		}
+		return $this->getcfg('enableCidChecker');
+	}
+
+	public function isInvitedByCid(Player $p){
+		$pcid = $p->getClientId();
+		$pcid = (string) $pcid;
+		if($this->cid->exists($pcid)){
+			// $this->getLogger()->info(TextFormat::GREEN . 'cid log '.$pcid);
+			return true;
+		}else{
+			return false;
+		}
+	}
+
+	public function logCid(Player $p){
+		$cid = $p->getClientId();
+		$cid = (string) $cid;
+		// $this->getLogger()->info(TextFormat::GREEN . 'cid log '.$cid);
+		$this->cid->set($cid,array('player'=>$p->getName(),'ip'=>$p->getAddress()));
+		$this->saveall();
+		
+	}
+
+	public function unlogCid(Player $p){
+		$cid = $p->getClientId();
+		$cid = (string) $cid;
+		if($this->cid->exists($cid)){
+			$this->cid->unset($cid);
+			$this->saveall();
+		}
+	}
+
+	public function getLogByCid($cid){
+		if($this->cid->exists($cid)){
+			$result = $this->cid->get($cid);
+			$result['cid'] = $cid;
+			return $result;
+		}else{
+			return false;
+		}
+	}
+
+	public function getLogByName($name){
+		$all = $this->cid->getAll();
+		$result = false;
+		foreach($all as $cid => $info){
+			if($info['player']===$name){
+				$result = $info;
+				$result['cid'] = $cid;
+				break;
+			}
+		}
+		return $result;
 	}
 
 }

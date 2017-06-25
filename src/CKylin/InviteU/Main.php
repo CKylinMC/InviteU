@@ -20,13 +20,14 @@ class Main extends PluginBase implements Listener
 {
 
     public function onEnable() {
-		$this->Version = 'v1.0.2';
+		$this->Version = 'v1.0.3';
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 		$this->path = $this->getDataFolder();
 		@mkdir($this->path);@mkdir($this->path);
 		$this->cfg = new Config($this->path."options.yml", Config::YAML,array(
 			'enable'=>true,
 			'enableCidChecker'=>true,
+			'autoOpenCdk'=>true,
 			'msg'=>'感谢您加入本服务器！',
 			'MaxInvited'=>10,
 			'Inviter_giftcard'=>array(
@@ -82,6 +83,12 @@ class Main extends PluginBase implements Listener
 				$s->sendMessage($this->getInvited($s->getName()));
 			}elseif($args[0]=='c'){
 				$this->getCards($s);
+			}elseif($args[0]=='help'){
+				$s->sendMessage('使用帮助：');
+				$s->sendMessage('获取自己的邀请码和邀请信息：/i');
+				$s->sendMessage('填写邀请码：/i 邀请码');
+				$s->sendMessage('(不区分大小写)');
+				$s->sendMessage('提取奖励：/i c');
 			}else{
 				$invited = $this->getInvitedCount($s->getName());
 				$max = $this->getcfg('MaxInvited');
@@ -199,11 +206,15 @@ class Main extends PluginBase implements Listener
 				$info['usedcards']--;
 				$this->invite->set($p,$info);
 				$this->saveall();
-				$pe->sendMessage('成功提取卡密：'.$cdk);
-				$pe->sendMessage('成功提取卡密：'.$cdk);
-				$pe->sendMessage('成功提取卡密：'.$cdk);
-				$pe->sendMessage('成功提取卡密：'.$cdk);
-				$pe->sendMessage('请谨慎保存(推荐先截屏)，卡密将只显示一次。');
+				if($this->getcfg('autoOpenCdk')){
+					$this->PC->openCDK($cdk,$pe);
+				}else{
+					$pe->sendMessage('成功提取卡密：'.$cdk);
+					$pe->sendMessage('成功提取卡密：'.$cdk);
+					$pe->sendMessage('成功提取卡密：'.$cdk);
+					$pe->sendMessage('成功提取卡密：'.$cdk);
+					$pe->sendMessage('请谨慎保存(推荐先截屏)，卡密将只显示一次。');
+				}
 			}
 		}else{
 			$pe->sendMessage('没有剩余可提取的卡密了哦，快去邀请小伙伴吧！');
@@ -232,9 +243,13 @@ class Main extends PluginBase implements Listener
 					$pe->sendMessage('获取卡密出错，邀请码填写失败');
 					return 3;
 				}else{
-					$pe->sendMessage('成功提取卡密：'.$cdk);
-					$pe->sendMessage('成功提取卡密：'.$cdk);
-					$pe->sendMessage('请谨慎保存(推荐先截屏)，卡密将只显示一次。');
+					if($this->getcfg('autoOpenCdk')){
+						$this->PC->openCDK($cdk,$pe);
+					}else{
+						$pe->sendMessage('成功提取卡密：'.$cdk);
+						$pe->sendMessage('成功提取卡密：'.$cdk);
+						$pe->sendMessage('请谨慎保存(推荐先截屏)，卡密将只显示一次。');
+					}
 				}
 				array_push($info['invited'],$p);
 				$info['usedcards']++;
@@ -278,13 +293,17 @@ class Main extends PluginBase implements Listener
 		return $this->cfg->getAll();
 	}
 	
+	public function havecfg($cfg){
+		return $this->cfg->exists($cfg);
+	}
+	
 	public function setcfg($cfg,$value){
-		return $this->cfg->set($cfg,$value);
+		$this->cfg->set($cfg,$value);
 		$this->saveall();
 	}
 	
 	public function setAll($cfg){
-		return $this->cfg->setAll($cfg);
+		$this->cfg->setAll($cfg);
 		$this->saveall();
 	}
 
